@@ -1,4 +1,4 @@
-from .supabase_service import get_supabase
+from .database_service import get_pool, close_pool, health_check
 from .menu_service import (
     get_all_menu_items,
     get_available_menu_items,
@@ -22,7 +22,6 @@ from .order_service import (
 from .settings_service import get_settings, update_settings, toggle_accepting_orders
 from .square_service import create_payment_link, get_payment_status, retrieve_order
 from .notification_service import (
-    send_sms,
     send_email,
     notify_new_order,
     send_order_confirmation,
