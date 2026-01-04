@@ -1,18 +1,34 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 
 export default function Hero() {
+  const [videoLoaded, setVideoLoaded] = useState(false);
+
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center text-white overflow-hidden">
-      {/* Image Background with Ken Burns effect */}
+      {/* Video Background */}
       <div className="absolute inset-0 z-0">
+        {/* Fallback image while video loads */}
         <div
-          className="absolute inset-0 bg-cover bg-center animate-slow-zoom"
+          className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}
           style={{
             backgroundImage: "url('https://images.unsplash.com/photo-1504544750208-dc0358e63f7f?w=1920&q=80')",
           }}
         />
+
+        {/* Video element - locally hosted for reliability */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          onLoadedData={() => setVideoLoaded(true)}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <source src="/videos/hero-bg.mp4" type="video/mp4" />
+        </video>
 
         {/* Dark overlay for text readability */}
         <div className="absolute inset-0 bg-black/50" />
