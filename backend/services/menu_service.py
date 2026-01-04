@@ -1,4 +1,5 @@
 from typing import List, Optional, Dict
+from uuid import UUID
 from models import MenuItem, MenuItemCreate, MenuItemUpdate, MenuCategory
 from services.database_service import fetch_one, fetch_all, execute_returning
 from cachetools import TTLCache
@@ -11,8 +12,12 @@ _ALL_MENU_CACHE_KEY = "all_menu_items"
 
 
 def _row_to_menu_item(row: dict) -> MenuItem:
-    """Convert a database row to MenuItem, handling Decimal conversion"""
+    """Convert a database row to MenuItem, handling type conversions"""
     data = dict(row)
+    # Convert UUID to string
+    if isinstance(data.get('id'), UUID):
+        data['id'] = str(data['id'])
+    # Convert Decimal to float
     if isinstance(data.get('price'), Decimal):
         data['price'] = float(data['price'])
     return MenuItem(**data)

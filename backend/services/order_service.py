@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from decimal import Decimal
+from uuid import UUID
 import json
 import uuid
 from models import Order, OrderCreate, OrderUpdate, OrderStatus, OrderItem
@@ -10,6 +11,9 @@ from services.database_service import fetch_one, fetch_all, execute_returning
 def _row_to_order(row: dict) -> Order:
     """Convert a database row to Order, handling type conversions"""
     data = dict(row)
+    # Convert UUID to string
+    if isinstance(data.get('id'), UUID):
+        data['id'] = str(data['id'])
     # Convert Decimal to float
     for key in ['subtotal', 'tax', 'total']:
         if isinstance(data.get(key), Decimal):
