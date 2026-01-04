@@ -133,3 +133,17 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Slow zoom animation for hero background */
+@keyframes slowZoom {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.1);
+  }
+}
+
+.animate-slow-zoom {
+  animation: slowZoom 20s ease-in-out infinite alternate;
+}

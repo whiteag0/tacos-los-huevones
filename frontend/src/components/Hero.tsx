@@ -1,33 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 
 export default function Hero() {
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
-
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center text-white overflow-hidden">
-      {/* Video Background */}
+      {/* Image Background with Ken Burns effect */}
       <div className="absolute inset-0 z-0">
-        {/* Fallback gradient while video loads */}
-        <div className={`absolute inset-0 bg-gradient-to-br from-red-900 via-red-800 to-orange-900 transition-opacity duration-1000 ${isVideoLoaded ? 'opacity-0' : 'opacity-100'}`} />
-
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          onLoadedData={() => setIsVideoLoaded(true)}
-          className="absolute inset-0 w-full h-full object-cover"
-          poster="https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=1920&q=80"
-        >
-          {/* Pexels free video - Mexican street food cooking */}
-          <source
-            src="https://videos.pexels.com/video-files/5737253/5737253-uhd_2560_1440_25fps.mp4"
-            type="video/mp4"
-          />
-        </video>
+        <div
+          className="absolute inset-0 bg-cover bg-center animate-slow-zoom"
+          style={{
+            backgroundImage: "url('https://images.unsplash.com/photo-1504544750208-dc0358e63f7f?w=1920&q=80')",
+          }}
+        />
 
         {/* Dark overlay for text readability */}
         <div className="absolute inset-0 bg-black/50" />
