@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from models.catering import CateringInquiry, CateringInquiryResponse
-from config import settings
+from config import get_settings
 import resend
 from datetime import datetime
+
+settings = get_settings()
 
 router = APIRouter(prefix="/api/catering", tags=["catering"])
 
@@ -95,12 +97,12 @@ async def submit_catering_inquiry(inquiry: CateringInquiry):
         """
 
         # Send email via Resend
-        if settings.RESEND_API_KEY:
-            resend.api_key = settings.RESEND_API_KEY
+        if settings.resend_api_key:
+            resend.api_key = settings.resend_api_key
 
             resend.Emails.send({
                 "from": "Tacos Los Huevones <noreply@tacosloshuevones.com>",
-                "to": [settings.BUSINESS_EMAIL] if settings.BUSINESS_EMAIL else ["admin@tacosloshuevones.com"],
+                "to": [settings.business_email] if settings.business_email else ["admin@tacosloshuevones.com"],
                 "subject": f"New Catering Inquiry - {event_type_display} ({guest_display} guests)",
                 "html": email_html,
                 "reply_to": inquiry.email,
