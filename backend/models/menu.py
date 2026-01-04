@@ -11,6 +11,8 @@ class MenuCategory(str, Enum):
     BREAKFAST = "breakfast"
     SIDES = "sides"
     DRINKS = "drinks"
+    SPECIALS = "specials"
+    KIDS = "kids"
 
 
 class MenuItem(BaseModel):
