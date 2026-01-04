@@ -69,11 +69,10 @@ export async function verifyPayment(orderId: string): Promise<{ order_id: string
 
 // Settings (for business hours display)
 export async function getSettings(): Promise<BusinessSettings> {
-  // This would typically be a public endpoint
-  // For now, we'll use default settings if not available
   try {
-    return fetchAPI<BusinessSettings>('/api/admin/settings');
+    return await fetchAPI<BusinessSettings>('/api/settings/');
   } catch {
+    // Fallback to default settings if API is unavailable
     return {
       id: 'main',
       business_name: 'Tacos Los Huevones',

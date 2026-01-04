@@ -100,10 +100,56 @@ render deploys list <service-id> -o json  # Get deploy ID
 render logs -r <service-id> -o text --limit 200  # View logs
 ```
 
+## Setup Checklist
+
+### 1. Database (Supabase)
+- [ ] Create project at supabase.com
+- [ ] Run `database/schema.sql` in SQL Editor
+- [ ] Run `database/seed_menu.sql` in SQL Editor
+- [ ] Copy Project URL and service_role key from Settings > API
+
+### 2. Payments (Square)
+- [ ] Create app at developer.squareup.com
+- [ ] Get Access Token, Location ID, Application ID
+- [ ] For testing: Use sandbox credentials
+- [ ] For production: Create production credentials
+
+### 3. SMS (Twilio)
+- [ ] Sign up at twilio.com
+- [ ] Get Account SID, Auth Token
+- [ ] Purchase a phone number
+- [ ] Verify your business phone for testing
+
+### 4. Email (Resend)
+- [ ] Sign up at resend.com
+- [ ] Get API key
+- [ ] Verify your domain (optional but recommended)
+
+### 5. Backend Deployment (Render)
+- [ ] Connect GitHub repo
+- [ ] Set root directory: `backend`
+- [ ] Set build command: `pip install -r requirements.txt`
+- [ ] Set start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+- [ ] Add all environment variables (see .env.example)
+- [ ] Deploy and verify at /health endpoint
+
+### 6. Frontend Deployment (Vercel)
+- [ ] Connect GitHub repo
+- [ ] Set root directory: `frontend`
+- [ ] Add env var: `NEXT_PUBLIC_API_URL=https://your-backend.onrender.com`
+- [ ] Deploy and test ordering flow
+
+### 7. Post-Deployment
+- [ ] Update FRONTEND_URL in Render to your Vercel URL
+- [ ] Test complete order flow (add to cart → checkout → pay → confirmation)
+- [ ] Test admin dashboard at /admin
+- [ ] Set SQUARE_ENVIRONMENT=production when ready
+
 ## API Endpoints
 
 ### Public
 - `GET /api/menu/` - Available menu items
+- `GET /api/settings/` - Business hours and settings
 - `POST /api/orders/` - Create order
 - `GET /api/orders/{id}` - Get order
 - `POST /api/payments/create-link/{order_id}` - Square payment link

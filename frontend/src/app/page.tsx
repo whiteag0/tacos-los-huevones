@@ -1,59 +1,49 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Hero from '@/components/Hero';
 import MenuSection from '@/components/MenuSection';
 import { MenuItem, MenuCategory } from '@/types';
+import { getMenu } from '@/lib/api';
 
-// For now, using static data. In production, this would fetch from the API
-const menuItems: MenuItem[] = [
-  // TACOS
+const categories: MenuCategory[] = ['breakfast', 'tacos', 'quesadillas', 'burritos', 'specials', 'kids', 'drinks'];
+
+// Fallback menu items in case API is unavailable
+const fallbackMenuItems: MenuItem[] = [
   { id: '1', name: 'Carne Asada Taco', description: 'Grilled marinated steak with fresh cilantro, onions, and our homemade salsa verde', price: 4.50, category: 'tacos', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: false },
   { id: '2', name: 'Al Pastor Taco', description: 'Marinated pork with pineapple, cilantro, and onions on a fresh corn tortilla', price: 4.50, category: 'tacos', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: false },
   { id: '3', name: 'Pollo Taco', description: 'Seasoned grilled chicken with lettuce, cheese, and chipotle crema', price: 4.00, category: 'tacos', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: false },
-  { id: '4', name: 'Barbacoa Taco', description: 'Slow-cooked shredded beef with cilantro, onions, and lime', price: 4.75, category: 'tacos', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: false },
-  { id: '5', name: 'Carnitas Taco', description: 'Crispy pulled pork with pickled onions and fresh salsa', price: 4.50, category: 'tacos', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: false },
-  { id: '6', name: 'Chorizo Taco', description: 'Spicy Mexican sausage with potatoes, cilantro, and onions', price: 4.25, category: 'tacos', is_available: true, is_popular: false, spicy_level: 2, is_vegetarian: false },
-  { id: '7', name: 'Veggie Taco', description: 'Grilled bell peppers, onions, mushrooms, and zucchini with queso fresco', price: 3.75, category: 'tacos', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: true },
-  { id: '8', name: 'Fish Taco', description: 'Beer-battered cod with cabbage slaw, chipotle mayo, and lime', price: 5.25, category: 'tacos', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: false },
-
-  // BURRITOS
   { id: '9', name: 'Carne Asada Burrito', description: 'Grilled steak with rice, beans, cheese, sour cream, and pico de gallo', price: 12.50, category: 'burritos', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: false },
-  { id: '10', name: 'Al Pastor Burrito', description: 'Marinated pork with rice, beans, pineapple, and fresh salsa', price: 12.50, category: 'burritos', is_available: true, is_popular: false, spicy_level: 1, is_vegetarian: false },
-  { id: '11', name: 'Pollo Burrito', description: 'Grilled chicken with rice, beans, lettuce, cheese, and chipotle crema', price: 11.50, category: 'burritos', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: false },
-  { id: '12', name: 'Barbacoa Burrito', description: 'Slow-cooked shredded beef with rice, beans, cheese, and salsa roja', price: 13.00, category: 'burritos', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: false },
-  { id: '13', name: 'Veggie Burrito', description: 'Grilled vegetables with rice, beans, cheese, guacamole, and sour cream', price: 10.50, category: 'burritos', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: true },
-  { id: '14', name: 'California Burrito', description: 'Carne asada with french fries, cheese, sour cream, and guacamole', price: 13.50, category: 'burritos', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: false },
-
-  // QUESADILLAS
   { id: '15', name: 'Cheese Quesadilla', description: 'Melted Oaxacan cheese in a crispy flour tortilla with sour cream', price: 7.00, category: 'quesadillas', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: true },
-  { id: '16', name: 'Chicken Quesadilla', description: 'Grilled chicken with melted cheese, peppers, and onions', price: 10.00, category: 'quesadillas', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: false },
-  { id: '17', name: 'Steak Quesadilla', description: 'Carne asada with melted cheese, peppers, and onions', price: 11.00, category: 'quesadillas', is_available: true, is_popular: false, spicy_level: 1, is_vegetarian: false },
-  { id: '18', name: 'Chorizo Quesadilla', description: 'Spicy chorizo with melted cheese and caramelized onions', price: 10.50, category: 'quesadillas', is_available: true, is_popular: false, spicy_level: 2, is_vegetarian: false },
-
-  // BREAKFAST
-  { id: '19', name: 'Breakfast Taco - Bacon', description: 'Scrambled eggs with crispy bacon, cheese, and salsa on a flour tortilla', price: 4.00, category: 'breakfast', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: false },
-  { id: '20', name: 'Breakfast Taco - Chorizo', description: 'Scrambled eggs with spicy chorizo and cheese on a flour tortilla', price: 4.25, category: 'breakfast', is_available: true, is_popular: true, spicy_level: 2, is_vegetarian: false },
-  { id: '21', name: 'Breakfast Taco - Potato', description: 'Scrambled eggs with crispy potatoes, cheese, and peppers', price: 3.75, category: 'breakfast', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: true },
   { id: '22', name: 'Breakfast Burrito', description: 'Scrambled eggs, choice of meat, potatoes, cheese, and salsa', price: 9.50, category: 'breakfast', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: false },
-  { id: '23', name: 'Breakfast Quesadilla', description: 'Scrambled eggs with cheese, your choice of bacon or chorizo', price: 8.50, category: 'breakfast', is_available: true, is_popular: false, spicy_level: 1, is_vegetarian: false },
-
-  // SIDES
-  { id: '24', name: 'Rice & Beans', description: 'Spanish rice and refried beans with melted cheese', price: 4.00, category: 'sides', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: true },
-  { id: '25', name: 'Chips & Salsa', description: 'Fresh tortilla chips with our homemade salsa verde and roja', price: 4.50, category: 'sides', is_available: true, is_popular: false, spicy_level: 1, is_vegetarian: true },
   { id: '26', name: 'Chips & Guacamole', description: 'Fresh tortilla chips with freshly made guacamole', price: 6.50, category: 'sides', is_available: true, is_popular: true, spicy_level: 0, is_vegetarian: true },
-  { id: '27', name: 'Elote (Street Corn)', description: 'Grilled corn on the cob with mayo, cotija cheese, chili, and lime', price: 5.00, category: 'sides', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: true },
-  { id: '28', name: 'Extra Salsa', description: 'Choose from mild, medium, or hot', price: 1.00, category: 'sides', is_available: true, is_popular: false, spicy_level: 2, is_vegetarian: true },
-
-  // DRINKS
   { id: '29', name: 'Horchata', description: 'Traditional Mexican rice drink with cinnamon and vanilla', price: 3.50, category: 'drinks', is_available: true, is_popular: true, spicy_level: 0, is_vegetarian: true },
-  { id: '30', name: 'Jamaica', description: 'Refreshing hibiscus flower tea, lightly sweetened', price: 3.50, category: 'drinks', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: true },
-  { id: '31', name: 'Tamarindo', description: 'Sweet and tangy tamarind drink', price: 3.50, category: 'drinks', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: true },
-  { id: '32', name: 'Mexican Coke', description: 'Made with real cane sugar', price: 3.00, category: 'drinks', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: true },
-  { id: '33', name: 'Jarritos', description: 'Mexican fruit soda - ask for available flavors', price: 2.50, category: 'drinks', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: true },
-  { id: '34', name: 'Bottled Water', description: 'Purified water', price: 2.00, category: 'drinks', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: true },
 ];
 
-const categories: MenuCategory[] = ['tacos', 'burritos', 'quesadillas', 'breakfast', 'sides', 'drinks'];
-
 export default function Home() {
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(fallbackMenuItems);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadMenu() {
+      try {
+        const items = await getMenu();
+        if (items && items.length > 0) {
+          setMenuItems(items);
+        }
+        setError(null);
+      } catch (err) {
+        console.error('Failed to load menu from API, using fallback:', err);
+        setError('Using cached menu - some items may not be available');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadMenu();
+  }, []);
+
   // Group items by category
   const groupedItems = categories.reduce((acc, category) => {
     acc[category] = menuItems.filter(item => item.category === category && item.is_available);
@@ -81,13 +71,28 @@ export default function Home() {
         </div>
       </nav>
 
+      {/* Loading/Error States */}
+      {loading && (
+        <div className="max-w-7xl mx-auto px-4 py-8 text-center">
+          <div className="animate-pulse text-gray-500">Loading menu...</div>
+        </div>
+      )}
+
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 py-2">
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-2 rounded-lg text-sm text-center">
+            {error}
+          </div>
+        </div>
+      )}
+
       {/* Menu Sections */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {categories.map((category) => (
           <MenuSection
             key={category}
             category={category}
-            items={groupedItems[category]}
+            items={groupedItems[category] || []}
           />
         ))}
       </div>

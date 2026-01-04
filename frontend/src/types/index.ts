@@ -1,4 +1,4 @@
-export type MenuCategory = 'tacos' | 'burritos' | 'quesadillas' | 'breakfast' | 'sides' | 'drinks';
+export type MenuCategory = 'tacos' | 'burritos' | 'quesadillas' | 'breakfast' | 'sides' | 'drinks' | 'specials' | 'kids';
 
 export interface MenuItem {
   id: string;
@@ -14,6 +14,7 @@ export interface MenuItem {
 }
 
 export interface CartItem {
+  cartItemId: string;
   menuItem: MenuItem;
   quantity: number;
   specialInstructions?: string;

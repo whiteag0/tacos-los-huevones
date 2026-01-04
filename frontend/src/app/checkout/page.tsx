@@ -9,7 +9,7 @@ const TAX_RATE = 0.08;
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { state, subtotal, clearCart } = useCart();
+  const { state, subtotal } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -87,8 +87,7 @@ export default function CheckoutPage() {
 
       const { payment_url } = await paymentRes.json();
 
-      // Clear cart and redirect to Square checkout
-      clearCart();
+      // Redirect to Square checkout (cart is cleared in confirmation page after payment)
       window.location.href = payment_url;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -124,7 +123,7 @@ export default function CheckoutPage() {
 
             <div className="space-y-4 mb-6">
               {state.items.map((item) => (
-                <div key={item.menuItem.id} className="flex justify-between items-start">
+                <div key={item.cartItemId} className="flex justify-between items-start">
                   <div>
                     <p className="font-medium">
                       {item.quantity}x {item.menuItem.name}

@@ -8,11 +8,16 @@ interface CartState {
   isOpen: boolean;
 }
 
+// Generate a unique cart item ID
+function generateCartItemId(): string {
+  return `cart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
 type CartAction =
   | { type: 'ADD_ITEM'; payload: { menuItem: MenuItem; quantity?: number; specialInstructions?: string } }
-  | { type: 'REMOVE_ITEM'; payload: string }
-  | { type: 'UPDATE_QUANTITY'; payload: { id: string; quantity: number } }
-  | { type: 'UPDATE_INSTRUCTIONS'; payload: { id: string; instructions: string } }
+  | { type: 'REMOVE_ITEM'; payload: string } // cartItemId
+  | { type: 'UPDATE_QUANTITY'; payload: { cartItemId: string; quantity: number } }
+  | { type: 'UPDATE_INSTRUCTIONS'; payload: { cartItemId: string; instructions: string } }
   | { type: 'CLEAR_CART' }
   | { type: 'TOGGLE_CART' }
   | { type: 'OPEN_CART' }
@@ -23,9 +28,9 @@ const CartContext = createContext<{
   state: CartState;
   dispatch: React.Dispatch<CartAction>;
   addToCart: (menuItem: MenuItem, quantity?: number, specialInstructions?: string) => void;
-  removeFromCart: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
-  updateInstructions: (id: string, instructions: string) => void;
+  removeFromCart: (cartItemId: string) => void;
+  updateQuantity: (cartItemId: string, quantity: number) => void;
+  updateInstructions: (cartItemId: string, instructions: string) => void;
   clearCart: () => void;
   toggleCart: () => void;
   openCart: () => void;
@@ -38,50 +43,65 @@ function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
       const { menuItem, quantity = 1, specialInstructions } = action.payload;
+
+      // Check if same item with same special instructions already exists
       const existingIndex = state.items.findIndex(
         (item) => item.menuItem.id === menuItem.id && item.specialInstructions === specialInstructions
       );
 
       if (existingIndex > -1) {
+        // Update quantity of existing item
         const newItems = [...state.items];
-        newItems[existingIndex].quantity += quantity;
+        newItems[existingIndex] = {
+          ...newItems[existingIndex],
+          quantity: newItems[existingIndex].quantity + quantity,
+        };
         return { ...state, items: newItems };
       }
 
+      // Add as new cart item with unique ID
       return {
         ...state,
-        items: [...state.items, { menuItem, quantity, specialInstructions }],
+        items: [
+          ...state.items,
+          {
+            cartItemId: generateCartItemId(),
+            menuItem,
+            quantity,
+            specialInstructions,
+          },
+        ],
       };
     }
 
     case 'REMOVE_ITEM':
       return {
         ...state,
-        items: state.items.filter((item) => item.menuItem.id !== action.payload),
+        items: state.items.filter((item) => item.cartItemId !== action.payload),
       };
 
     case 'UPDATE_QUANTITY': {
-      const { id, quantity } = action.payload;
+      const { cartItemId, quantity } = action.payload;
       if (quantity <= 0) {
         return {
           ...state,
-          items: state.items.filter((item) => item.menuItem.id !== id),
+          items: state.items.filter((item) => item.cartItemId !== cartItemId),
         };
       }
       return {
         ...state,
         items: state.items.map((item) =>
-          item.menuItem.id === id ? { ...item, quantity } : item
+          item.cartItemId === cartItemId ? { ...item, quantity } : item
         ),
       };
     }
 
     case 'UPDATE_INSTRUCTIONS': {
-      const { id, instructions } = action.payload;
+      const { cartItemId, instructions } = action.payload;
       return {
         ...state,
         items: state.items.map((item) =>
-          item.menuItem.id === id ? { ...item, specialInstructions: instructions } : item
+          item.cartItemId === cartItemId ? { ...item, specialInstructions: instructions } : item
         ),
       };
     }
@@ -99,7 +119,12 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       return { ...state, isOpen: false };
 
     case 'LOAD_CART':
-      return { ...state, items: action.payload };
+      // Ensure loaded items have cartItemId (for backwards compatibility with old localStorage)
+      const itemsWithIds = action.payload.map(item => ({
+        ...item,
+        cartItemId: item.cartItemId || generateCartItemId(),
+      }));
+      return { ...state, items: itemsWithIds };
 
     default:
       return state;
@@ -131,16 +156,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'ADD_ITEM', payload: { menuItem, quantity, specialInstructions } });
   };
 
-  const removeFromCart = (id: string) => {
-    dispatch({ type: 'REMOVE_ITEM', payload: id });
+  const removeFromCart = (cartItemId: string) => {
+    dispatch({ type: 'REMOVE_ITEM', payload: cartItemId });
   };
 
-  const updateQuantity = (id: string, quantity: number) => {
-    dispatch({ type: 'UPDATE_QUANTITY', payload: { id, quantity } });
+  const updateQuantity = (cartItemId: string, quantity: number) => {
+    dispatch({ type: 'UPDATE_QUANTITY', payload: { cartItemId, quantity } });
   };
 
-  const updateInstructions = (id: string, instructions: string) => {
-    dispatch({ type: 'UPDATE_INSTRUCTIONS', payload: { id, instructions } });
+  const updateInstructions = (cartItemId: string, instructions: string) => {
+    dispatch({ type: 'UPDATE_INSTRUCTIONS', payload: { cartItemId, instructions } });
   };
 
   const clearCart = () => {
