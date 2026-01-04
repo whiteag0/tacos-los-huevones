@@ -1,8 +1,31 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Header
+import asyncio
+import hmac
+import hashlib
 from models import OrderStatus
 from services import order_service, square_service, notification_service
+from config import get_settings
 
 router = APIRouter()
+settings = get_settings()
+
+
+def verify_square_signature(payload: bytes, signature: str) -> bool:
+    """
+    Verify Square webhook signature.
+    Square uses HMAC-SHA256 for webhook signatures.
+    """
+    if not settings.square_webhook_signature_key:
+        # If no signature key configured, skip verification (development mode)
+        return True
+
+    expected_signature = hmac.new(
+        settings.square_webhook_signature_key.encode(),
+        payload,
+        hashlib.sha256
+    ).digest().hex()
+
+    return hmac.compare_digest(expected_signature, signature)
 
 
 @router.post("/create-link/{order_id}")
@@ -41,6 +64,14 @@ async def create_payment_link(order_id: str):
 @router.post("/webhook")
 async def payment_webhook(request: Request):
     """Handle Square webhook for payment completion"""
+    # Get raw body for signature verification
+    body_bytes = await request.body()
+
+    # Verify webhook signature if configured
+    signature = request.headers.get("x-square-hmacsha256-signature", "")
+    if settings.square_webhook_signature_key and not verify_square_signature(body_bytes, signature):
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+
     body = await request.json()
     event_type = body.get("type")
 
@@ -57,10 +88,12 @@ async def payment_webhook(request: Request):
             )
 
             if order:
-                # Send notifications
-                await notification_service.notify_new_order(order)
-                await notification_service.send_order_confirmation(order)
+                # Send notifications in background - don't block webhook response
+                asyncio.create_task(
+                    notification_service.send_notifications_async(order, "new_order")
+                )
 
+    # Return immediately - notifications happen in background
     return {"status": "ok"}
 
 

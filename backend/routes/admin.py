@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
+import asyncio
 from typing import List, Optional
 from models import (
     MenuItem, MenuItemCreate, MenuItemUpdate,
@@ -81,9 +82,11 @@ async def update_order_status(order_id: str, status: OrderStatus):
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    # Send notification when order is ready
+    # Send notification when order is ready (in background)
     if status == OrderStatus.READY:
-        await notification_service.send_order_ready(order)
+        asyncio.create_task(
+            notification_service.send_notifications_async(order, "order_ready")
+        )
 
     return order
 
@@ -121,28 +124,12 @@ async def toggle_accepting_orders(accepting: bool):
 
 @router.get("/stats", dependencies=[Depends(verify_admin)])
 async def get_dashboard_stats():
-    """Get dashboard statistics"""
-    todays_orders = await order_service.get_todays_orders()
-    active_orders = await order_service.get_active_orders()
+    """Get dashboard statistics (optimized with SQL aggregations)"""
+    stats = await order_service.get_dashboard_stats()
     settings = await settings_service.get_settings()
 
-    # Calculate stats
-    total_revenue = sum(o.total for o in todays_orders if o.status != OrderStatus.CANCELLED)
-    completed_orders = len([o for o in todays_orders if o.status == OrderStatus.COMPLETED])
-    pending_orders = len([o for o in active_orders if o.status == OrderStatus.PAID])
-    preparing_orders = len([o for o in active_orders if o.status == OrderStatus.PREPARING])
-
     return {
-        "today": {
-            "total_orders": len(todays_orders),
-            "completed_orders": completed_orders,
-            "total_revenue": total_revenue,
-        },
-        "active": {
-            "pending": pending_orders,
-            "preparing": preparing_orders,
-            "ready": len([o for o in active_orders if o.status == OrderStatus.READY]),
-        },
+        **stats,
         "settings": {
             "is_accepting_orders": settings.is_accepting_orders,
             "estimated_wait_minutes": settings.estimated_wait_minutes,

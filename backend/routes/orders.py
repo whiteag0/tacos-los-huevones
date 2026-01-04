@@ -15,10 +15,16 @@ async def create_order(order_data: OrderCreate):
     if not settings.is_accepting_orders:
         raise HTTPException(status_code=400, detail="Sorry, we're not accepting orders right now")
 
-    # Calculate totals
+    # Extract all menu item IDs from the order
+    menu_item_ids = [item.menu_item_id for item in order_data.items]
+
+    # Batch fetch all menu items in a single query (fixes N+1 problem)
+    menu_items_map = await menu_service.get_menu_items_by_ids(menu_item_ids)
+
+    # Calculate totals and validate items
     subtotal = 0.0
     for item in order_data.items:
-        menu_item = await menu_service.get_menu_item_by_id(item.menu_item_id)
+        menu_item = menu_items_map.get(item.menu_item_id)
         if not menu_item:
             raise HTTPException(status_code=400, detail=f"Menu item {item.menu_item_id} not found")
         if not menu_item.is_available:
@@ -49,12 +55,8 @@ async def get_order(order_id: str):
 
 @router.get("/{order_id}/status")
 async def get_order_status(order_id: str):
-    """Get just the status of an order (for polling)"""
-    order = await order_service.get_order_by_id(order_id)
+    """Get just the status of an order (for polling) - optimized to only fetch needed columns"""
+    order = await order_service.get_order_status_only(order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    return {
-        "order_id": order.id,
-        "status": order.status,
-        "estimated_ready_time": order.estimated_ready_time
-    }
+    return order

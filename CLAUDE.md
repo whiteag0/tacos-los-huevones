@@ -6,11 +6,11 @@ Run with: `claude --dangerously-skip-permissions`
 
 Full-stack food truck ordering website for **Tacos Los Huevones** in Parker, Colorado.
 
-- **Frontend**: Next.js 15 + TypeScript + Tailwind CSS (deploy to Vercel)
+- **Frontend**: Next.js 16 + TypeScript + Tailwind CSS (deploy to Vercel)
 - **Backend**: FastAPI + Python 3.11 (deploy to Render)
-- **Database**: Supabase (PostgreSQL)
+- **Database**: Neon (PostgreSQL) - Project ID: `empty-shape-89765791`
 - **Payments**: Square API with $1 platform fee
-- **Notifications**: Twilio (SMS) + Resend (email)
+- **Notifications**: Resend (email only - free tier: 100 emails/day)
 
 ## Project Structure
 
@@ -24,7 +24,7 @@ tacos-los-huevones/
 │   └── src/types/           # TypeScript interfaces
 ├── backend/                  # FastAPI app
 │   ├── routes/              # menu, orders, payments, admin, notifications
-│   ├── services/            # supabase, menu, order, square, notification
+│   ├── services/            # database, menu, order, square, notification
 │   ├── models/              # Pydantic models (menu, order, settings)
 │   ├── config.py            # Environment settings
 │   ├── main.py              # FastAPI app entry
@@ -32,7 +32,8 @@ tacos-los-huevones/
 │   └── .python-version      # Pin to 3.11.4 for Render
 └── database/
     ├── schema.sql           # Supabase tables (menu_items, orders, settings)
-    └── seed_menu.sql        # 34 menu items pre-seeded
+    ├── seed_menu.sql        # 34 menu items pre-seeded
+    └── migration_add_indexes.sql  # Performance indexes
 ```
 
 ## Key Features Built
@@ -43,9 +44,20 @@ tacos-los-huevones/
 4. **Order Tracking**: Real-time status polling (pending → paid → preparing → ready → completed)
 5. **Admin Dashboard** (`/admin`):
    - Stats (today's orders, revenue)
-   - Order management (update status, triggers SMS/email)
+   - Order management (update status, triggers email notifications)
    - Menu CRUD (add/edit/delete items, toggle availability)
    - Business settings (hours, tax rate, accepting orders toggle)
+
+## Performance Optimizations
+
+- **Menu caching**: 5-minute TTL in-memory cache
+- **Settings caching**: 5-minute TTL in-memory cache
+- **Batch queries**: Order creation uses single batch query instead of N+1
+- **GZip compression**: All API responses compressed
+- **Async notifications**: Webhook returns immediately, emails sent in background
+- **Throttled scroll**: Frontend uses requestAnimationFrame for scroll events
+- **Memoized context**: CartContext uses useMemo/useCallback
+- **Lazy video loading**: Hero video uses Intersection Observer
 
 ## Deployment
 
@@ -59,28 +71,36 @@ tacos-los-huevones/
 
 ### Vercel (Frontend)
 - Root directory: `frontend`
-- Env var: `NEXT_PUBLIC_API_URL=https://tacos-los-huevones.onrender.com`
+- Env vars:
+  - `NEXT_PUBLIC_API_URL=https://tacos-los-huevones.onrender.com`
+  - `SITE_PASSWORD=` (leave empty to disable password protection)
 
-### Supabase
-- Run `database/schema.sql` then `database/seed_menu.sql`
+### Neon (Database)
+- Project ID: `empty-shape-89765791`
+- Database: `neondb`
+- Connection string available via Neon MCP or dashboard
+- Schema, seed data, and indexes already applied
 
 ## Environment Variables (Backend)
 
 ```
-SUPABASE_URL=
-SUPABASE_KEY=
+DATABASE_URL=postgresql://neondb_owner:<password>@<host>/neondb?sslmode=require
 SQUARE_ACCESS_TOKEN=
 SQUARE_LOCATION_ID=
 SQUARE_APPLICATION_ID=
 SQUARE_ENVIRONMENT=production
-TWILIO_ACCOUNT_SID=
-TWILIO_AUTH_TOKEN=
-TWILIO_PHONE_NUMBER=
+SQUARE_WEBHOOK_SIGNATURE_KEY=  # Optional: for webhook verification
 RESEND_API_KEY=
-BUSINESS_PHONE=
 BUSINESS_EMAIL=
 FRONTEND_URL=
 ADMIN_API_KEY=
+```
+
+## Environment Variables (Frontend - Vercel)
+
+```
+NEXT_PUBLIC_API_URL=https://tacos-los-huevones.onrender.com
+SITE_PASSWORD=  # Leave empty to disable password protection
 ```
 
 ## Common Issues & Fixes
@@ -102,44 +122,42 @@ render logs -r <service-id> -o text --limit 200  # View logs
 
 ## Setup Checklist
 
-### 1. Database (Supabase)
-- [ ] Create project at supabase.com
-- [ ] Run `database/schema.sql` in SQL Editor
-- [ ] Run `database/seed_menu.sql` in SQL Editor
-- [ ] Copy Project URL and service_role key from Settings > API
+### 1. Database (Neon)
+- [x] Project created: `tacos-los-huevones` (ID: `empty-shape-89765791`)
+- [x] Schema applied (menu_items, orders, settings tables)
+- [x] Seed data loaded (34 menu items)
+- [x] Performance indexes applied
+- [ ] Get connection string from Neon dashboard or MCP
 
 ### 2. Payments (Square)
 - [ ] Create app at developer.squareup.com
 - [ ] Get Access Token, Location ID, Application ID
 - [ ] For testing: Use sandbox credentials
 - [ ] For production: Create production credentials
+- [ ] Optional: Set up webhook and get signature key
 
-### 3. SMS (Twilio)
-- [ ] Sign up at twilio.com
-- [ ] Get Account SID, Auth Token
-- [ ] Purchase a phone number
-- [ ] Verify your business phone for testing
-
-### 4. Email (Resend)
+### 3. Email (Resend)
 - [ ] Sign up at resend.com
-- [ ] Get API key
+- [ ] Get API key (free tier: 100 emails/day)
 - [ ] Verify your domain (optional but recommended)
 
-### 5. Backend Deployment (Render)
+### 4. Backend Deployment (Render)
 - [ ] Connect GitHub repo
 - [ ] Set root directory: `backend`
 - [ ] Set build command: `pip install -r requirements.txt`
 - [ ] Set start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-- [ ] Add all environment variables (see .env.example)
+- [ ] Add DATABASE_URL from Neon connection string
+- [ ] Add other environment variables (Square, Resend, etc.)
 - [ ] Deploy and verify at /health endpoint
 
-### 6. Frontend Deployment (Vercel)
+### 5. Frontend Deployment (Vercel)
 - [ ] Connect GitHub repo
 - [ ] Set root directory: `frontend`
 - [ ] Add env var: `NEXT_PUBLIC_API_URL=https://your-backend.onrender.com`
+- [ ] Optional: Add `SITE_PASSWORD` for private beta
 - [ ] Deploy and test ordering flow
 
-### 7. Post-Deployment
+### 6. Post-Deployment
 - [ ] Update FRONTEND_URL in Render to your Vercel URL
 - [ ] Test complete order flow (add to cart → checkout → pay → confirmation)
 - [ ] Test admin dashboard at /admin
@@ -148,14 +166,15 @@ render logs -r <service-id> -o text --limit 200  # View logs
 ## API Endpoints
 
 ### Public
-- `GET /api/menu/` - Available menu items
-- `GET /api/settings/` - Business hours and settings
+- `GET /api/menu/` - Available menu items (cached 5 min)
+- `GET /api/settings/` - Business hours and settings (cached 5 min)
 - `POST /api/orders/` - Create order
 - `GET /api/orders/{id}` - Get order
+- `GET /api/orders/{id}/status` - Get order status (optimized for polling)
 - `POST /api/payments/create-link/{order_id}` - Square payment link
 
 ### Admin (requires `X-Admin-Key` header)
-- `GET /api/admin/stats` - Dashboard stats
+- `GET /api/admin/stats` - Dashboard stats (optimized with SQL aggregations)
 - `GET /api/admin/orders/active` - Active orders
 - `PATCH /api/admin/orders/{id}/status?status=preparing` - Update status
 - `POST /api/admin/menu` - Create menu item

@@ -3,29 +3,23 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    # Supabase
-    supabase_url: str = ""
-    supabase_key: str = ""
+    # Database (Neon PostgreSQL)
+    database_url: str = ""
 
     # Square
     square_access_token: str = ""
     square_location_id: str = ""
     square_application_id: str = ""
     square_environment: str = "sandbox"  # "sandbox" or "production"
+    square_webhook_signature_key: str = ""  # For webhook verification
 
     # Your platform fee (in cents)
     platform_fee_cents: int = 100  # $1.00
 
-    # Twilio (for SMS)
-    twilio_account_sid: str = ""
-    twilio_auth_token: str = ""
-    twilio_phone_number: str = ""
-
-    # Resend (for email)
+    # Resend (for email) - Free tier: 100 emails/day
     resend_api_key: str = ""
 
-    # Business notification
-    business_phone: str = ""
+    # Business notification email
     business_email: str = ""
 
     # Frontend URL
