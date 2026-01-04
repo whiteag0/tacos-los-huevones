@@ -37,3 +37,7 @@ coverage/
 # Misc
 *.bak
 *.tmp
+
+# Sensitive files
+backend/.env.render
+backend/.mcp.json
