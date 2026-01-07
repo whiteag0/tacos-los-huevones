@@ -6,7 +6,7 @@ import MenuSection from '@/components/MenuSection';
 import { MenuItem, MenuCategory } from '@/types';
 import { getMenu } from '@/lib/api';
 
-const categories: MenuCategory[] = ['breakfast', 'tacos', 'quesadillas', 'burritos', 'specials', 'kids', 'drinks'];
+const categories: MenuCategory[] = ['breakfast', 'tacos', 'quesadillas', 'burritos', 'sides', 'drinks'];
 
 // Fallback menu items in case API is unavailable
 const fallbackMenuItems: MenuItem[] = [

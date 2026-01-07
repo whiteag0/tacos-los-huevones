@@ -1,16 +1,72 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function Hero() {
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Lazy load video - only start loading after component mounts and is visible
+  useEffect(() => {
+    // Use Intersection Observer to only load video when hero is visible
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setShouldLoadVideo(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const heroElement = document.getElementById('hero-section');
+    if (heroElement) {
+      observer.observe(heroElement);
+    }
+
+    // Fallback: load video after 1 second if intersection observer doesn't fire
+    const timeout = setTimeout(() => setShouldLoadVideo(true), 1000);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  // iOS Safari requires explicit play() call for autoplay
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video && shouldLoadVideo) {
+      const playVideo = async () => {
+        try {
+          await video.play();
+        } catch {
+          // Autoplay failed - this is expected on some browsers
+          // Video will remain paused, fallback image is shown
+        }
+      };
+
+      // Try to play immediately if video is ready
+      if (video.readyState >= 3) {
+        playVideo();
+      }
+
+      // Also try on canplay event for delayed load
+      video.addEventListener('canplay', playVideo);
+
+      return () => {
+        video.removeEventListener('canplay', playVideo);
+      };
+    }
+  }, [shouldLoadVideo]);
 
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center text-white overflow-hidden">
+    <section id="hero-section" className="relative min-h-[90vh] flex items-center justify-center text-white overflow-hidden">
       {/* Video Background */}
       <div className="absolute inset-0 z-0">
-        {/* Fallback image while video loads */}
+        {/* Poster image - shown immediately while video loads */}
         <div
           className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}
           style={{
@@ -18,17 +74,21 @@ export default function Hero() {
           }}
         />
 
-        {/* Video element - locally hosted for reliability */}
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          onLoadedData={() => setVideoLoaded(true)}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
-        >
-          <source src="/videos/hero-bg.mp4" type="video/mp4" />
-        </video>
+        {/* Video element - lazy loaded */}
+        {shouldLoadVideo && (
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            onLoadedData={() => setVideoLoaded(true)}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
+          >
+            <source src="/videos/hero-bg.mp4" type="video/mp4" />
+          </video>
+        )}
 
         {/* Dark overlay for text readability */}
         <div className="absolute inset-0 bg-black/50" />
@@ -42,7 +102,7 @@ export default function Hero() {
         <div className="text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-8">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            <span className="w-2 h-2 bg-green-400 rounded-full" />
             <span className="text-sm font-medium">Now Taking Online Orders</span>
           </div>
 
@@ -107,10 +167,10 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Scroll Indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 animate-bounce">
+      {/* Scroll Indicator - removed animate-bounce for performance */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
         <div className="w-8 h-12 border-2 border-white/30 rounded-full flex justify-center pt-2">
-          <div className="w-1.5 h-3 bg-white/60 rounded-full animate-pulse" />
+          <div className="w-1.5 h-3 bg-white/60 rounded-full" />
         </div>
       </div>
 

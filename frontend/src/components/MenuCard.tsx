@@ -92,14 +92,14 @@ export default function MenuCard({ item }: MenuCardProps) {
             )}
           </div>
 
-          {/* Quick Add Button */}
+          {/* Quick Add Button - always visible on mobile, hover-show on desktop */}
           <button
             onClick={handleQuickAdd}
             disabled={isAdding}
             className={`absolute bottom-3 right-3 bg-red-600 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 btn-press ${
               isAdding
                 ? 'scale-110 bg-green-500'
-                : 'opacity-0 group-hover:opacity-100 hover:bg-red-700 hover:scale-105'
+                : 'opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:bg-red-700 active:scale-95 md:hover:scale-105'
             }`}
           >
             {isAdding ? (
