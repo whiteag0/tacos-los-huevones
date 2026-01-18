@@ -1,4 +1,4 @@
-from square.client import Client
+from square import Square
 from config import get_settings
 from typing import Optional, Dict, Any
 import uuid
@@ -6,9 +6,8 @@ import uuid
 settings = get_settings()
 
 # Initialize Square client
-square_client = Client(
-    access_token=settings.square_access_token,
-    environment=settings.square_environment
+square_client = Square(
+    token=settings.square_access_token,
 )
 
 
@@ -30,15 +29,13 @@ async def create_payment_link(
     Returns:
         Dict with payment_link_url and payment_link_id
     """
-    checkout_api = square_client.checkout
-
-    # Calculate application fee ($1 = 100 cents)
+    # Calculate application fee ($1.50 = 150 cents)
     app_fee_cents = settings.platform_fee_cents
 
-    result = checkout_api.create_payment_link(
-        body={
-            "idempotency_key": str(uuid.uuid4()),
-            "order": {
+    try:
+        result = square_client.checkout.payment_links.create(
+            idempotency_key=str(uuid.uuid4()),
+            order={
                 "location_id": settings.square_location_id,
                 "line_items": [
                     {
@@ -52,7 +49,7 @@ async def create_payment_link(
                 ],
                 "reference_id": order_id,
             },
-            "checkout_options": {
+            checkout_options={
                 "redirect_url": f"{settings.frontend_url}/order/{order_id}/confirmation",
                 "ask_for_shipping_address": False,
                 "accepted_payment_methods": {
@@ -61,66 +58,53 @@ async def create_payment_link(
                     "cash_app_pay": True,
                 }
             },
-            "pre_populated_data": {
+            pre_populated_data={
                 "buyer_email": customer_email
             },
-            "payment_note": f"Order #{order_id[:8]}",
-            # Application fee - this is your $1
-            "app_fee_money": {
-                "amount": app_fee_cents,
-                "currency": "USD"
-            }
-        }
-    )
+            payment_note=f"Order #{order_id[:8]}",
+        )
 
-    if result.is_success():
-        payment_link = result.body.get("payment_link", {})
+        payment_link = result.payment_link
         return {
             "success": True,
-            "payment_link_url": payment_link.get("url"),
-            "payment_link_id": payment_link.get("id"),
-            "order_id": payment_link.get("order_id"),
+            "payment_link_url": payment_link.url if payment_link else None,
+            "payment_link_id": payment_link.id if payment_link else None,
+            "order_id": payment_link.order_id if payment_link else None,
         }
-    else:
+    except Exception as e:
         return {
             "success": False,
-            "errors": [error.get("detail") for error in result.errors]
+            "errors": [str(e)]
         }
 
 
 async def get_payment_status(payment_link_id: str) -> Dict[str, Any]:
     """Check the status of a payment link"""
-    checkout_api = square_client.checkout
-
-    result = checkout_api.retrieve_payment_link(id=payment_link_id)
-
-    if result.is_success():
-        payment_link = result.body.get("payment_link", {})
+    try:
+        result = square_client.checkout.payment_links.get(id=payment_link_id)
+        payment_link = result.payment_link
         return {
             "success": True,
-            "status": "completed" if payment_link.get("order_id") else "pending",
+            "status": "completed" if payment_link and payment_link.order_id else "pending",
             "payment_link": payment_link
         }
-    else:
+    except Exception as e:
         return {
             "success": False,
-            "errors": [error.get("detail") for error in result.errors]
+            "errors": [str(e)]
         }
 
 
 async def retrieve_order(square_order_id: str) -> Dict[str, Any]:
     """Retrieve order details from Square"""
-    orders_api = square_client.orders
-
-    result = orders_api.retrieve_order(order_id=square_order_id)
-
-    if result.is_success():
+    try:
+        result = square_client.orders.get(order_id=square_order_id)
         return {
             "success": True,
-            "order": result.body.get("order")
+            "order": result.order
         }
-    else:
+    except Exception as e:
         return {
             "success": False,
-            "errors": [error.get("detail") for error in result.errors]
+            "errors": [str(e)]
         }

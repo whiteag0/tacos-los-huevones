@@ -9,7 +9,7 @@ Full-stack food truck ordering website for **Tacos Los Huevones** in Parker, Col
 - **Frontend**: Next.js 16 + TypeScript + Tailwind CSS (deploy to Vercel)
 - **Backend**: FastAPI + Python 3.11 (deploy to Render)
 - **Database**: Neon (PostgreSQL) - Project ID: `empty-shape-89765791`
-- **Payments**: Square API with $1 platform fee
+- **Payments**: Square API with $1.50 platform fee (paid by customer)
 - **Notifications**: Resend (email only - free tier: 100 emails/day)
 
 ## Project Structure
@@ -47,6 +47,7 @@ tacos-los-huevones/
    - Order management (update status, triggers email notifications)
    - Menu CRUD (add/edit/delete items, toggle availability)
    - Business settings (hours, tax rate, accepting orders toggle)
+6. **Welcome Letter Modal**: Shows once to owner on first visit with Spanish letter explaining the site and benefits (stored in localStorage)
 
 ## Performance Optimizations
 

@@ -46,13 +46,14 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
-      // Create order
+      // Create order with variant support
       const orderItems = state.items.map((item) => ({
         menu_item_id: item.menuItem.id,
         name: item.menuItem.name,
         quantity: item.quantity,
-        price: item.menuItem.price,
+        price: item.menuItem.price + (item.selectedVariant?.price_modifier || 0),
         special_instructions: item.specialInstructions,
+        selected_variant: item.selectedVariant,
       }));
 
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -122,21 +123,29 @@ export default function CheckoutPage() {
             <h2 className="text-xl font-bold mb-4">Order Summary</h2>
 
             <div className="space-y-4 mb-6">
-              {state.items.map((item) => (
-                <div key={item.cartItemId} className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium">
-                      {item.quantity}x {item.menuItem.name}
-                    </p>
-                    {item.specialInstructions && (
-                      <p className="text-gray-500 text-sm italic">{item.specialInstructions}</p>
-                    )}
+              {state.items.map((item) => {
+                const unitPrice = item.menuItem.price + (item.selectedVariant?.price_modifier || 0);
+                return (
+                  <div key={item.cartItemId} className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">
+                        {item.quantity}x {item.menuItem.name}
+                      </p>
+                      {item.selectedVariant && (
+                        <p className="text-gray-600 text-sm">
+                          {item.selectedVariant.name} ({item.selectedVariant.name_en})
+                        </p>
+                      )}
+                      {item.specialInstructions && (
+                        <p className="text-gray-500 text-sm italic">{item.specialInstructions}</p>
+                      )}
+                    </div>
+                    <span className="font-medium">
+                      ${(unitPrice * item.quantity).toFixed(2)}
+                    </span>
                   </div>
-                  <span className="font-medium">
-                    ${(item.menuItem.price * item.quantity).toFixed(2)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="border-t pt-4 space-y-2">

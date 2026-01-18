@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     square_webhook_signature_key: str = ""  # For webhook verification
 
     # Your platform fee (in cents)
-    platform_fee_cents: int = 100  # $1.00
+    platform_fee_cents: int = 150  # $1.50
 
     # Resend (for email) - Free tier: 100 emails/day
     resend_api_key: str = ""
@@ -30,6 +30,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore"  # Ignore extra environment variables
 
 
 @lru_cache()

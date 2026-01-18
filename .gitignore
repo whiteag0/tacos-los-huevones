@@ -41,3 +41,10 @@ coverage/
 # Sensitive files
 backend/.env.render
 backend/.mcp.json
+frontend/.mcp.json
+.mcp.json
+.vercel
+.env*.local
+
+# Screenshots
+screenshots/

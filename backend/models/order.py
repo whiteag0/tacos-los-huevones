@@ -13,12 +13,21 @@ class OrderStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class SelectedVariant(BaseModel):
+    """Selected variant for an order item"""
+    id: str  # e.g., "pastor"
+    name: str  # Spanish name, e.g., "Pastor"
+    name_en: str  # English name, e.g., "Al Pastor"
+    price_modifier: float = 0  # Additional cost for this option
+
+
 class OrderItem(BaseModel):
     menu_item_id: str
     name: str
     quantity: int
-    price: float  # unit price
+    price: float  # unit price (base price + variant price modifier)
     special_instructions: Optional[str] = None
+    selected_variant: Optional[SelectedVariant] = None  # Selected meat/option for items with variants
 
 
 class Order(BaseModel):

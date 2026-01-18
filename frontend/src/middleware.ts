@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Password protection - hardcoded for now until site goes public
-const SITE_PASSWORD = 'tacos2026';
+// Password protection - use environment variable (set SITE_PASSWORD in Vercel)
+// Leave empty or unset to disable password protection
+const SITE_PASSWORD = process.env.SITE_PASSWORD || '';
 
 export function middleware(request: NextRequest) {
-  // Skip if no password is set
+  // Skip if no password is set (public site)
   if (!SITE_PASSWORD) {
     return NextResponse.next();
   }

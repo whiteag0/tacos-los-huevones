@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict
 from uuid import UUID
-from models import MenuItem, MenuItemCreate, MenuItemUpdate, MenuCategory
+import json
+from models import MenuItem, MenuItemCreate, MenuItemUpdate, MenuCategory, MenuVariants
 from services.database_service import fetch_one, fetch_all, execute_returning
 from cachetools import TTLCache
 from decimal import Decimal
@@ -20,6 +21,13 @@ def _row_to_menu_item(row: dict) -> MenuItem:
     # Convert Decimal to float
     if isinstance(data.get('price'), Decimal):
         data['price'] = float(data['price'])
+    # Parse variants JSONB if present
+    if data.get('variants'):
+        if isinstance(data['variants'], str):
+            data['variants'] = json.loads(data['variants'])
+        # Convert to MenuVariants model
+        if isinstance(data['variants'], dict):
+            data['variants'] = MenuVariants(**data['variants'])
     return MenuItem(**data)
 
 
@@ -94,11 +102,16 @@ async def get_menu_items_by_ids(item_ids: List[str]) -> Dict[str, MenuItem]:
 
 async def create_menu_item(item: MenuItemCreate) -> MenuItem:
     """Create a new menu item"""
+    # Convert variants to JSON if present
+    variants_json = None
+    if item.variants:
+        variants_json = json.dumps(item.variants.model_dump())
+
     row = await execute_returning(
         """
         INSERT INTO menu_items (name, description, price, category, image_url,
-                               is_available, is_popular, spicy_level, is_vegetarian)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                               is_available, is_popular, spicy_level, is_vegetarian, variants)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
         """,
         item.name,
@@ -109,7 +122,8 @@ async def create_menu_item(item: MenuItemCreate) -> MenuItem:
         item.is_available if item.is_available is not None else True,
         item.is_popular if item.is_popular is not None else False,
         item.spicy_level if item.spicy_level is not None else 0,
-        item.is_vegetarian if item.is_vegetarian is not None else False
+        item.is_vegetarian if item.is_vegetarian is not None else False,
+        variants_json
     )
     _invalidate_menu_cache()
     return _row_to_menu_item(row)
@@ -120,6 +134,10 @@ async def update_menu_item(item_id: str, item: MenuItemUpdate) -> Optional[MenuI
     update_data = {k: v for k, v in item.model_dump().items() if v is not None}
     if not update_data:
         return await get_menu_item_by_id(item_id)
+
+    # Convert variants to JSON if present
+    if 'variants' in update_data and update_data['variants'] is not None:
+        update_data['variants'] = json.dumps(update_data['variants'])
 
     # Build dynamic update query
     set_clauses = []

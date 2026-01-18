@@ -1,4 +1,17 @@
-export type MenuCategory = 'tacos' | 'burritos' | 'quesadillas' | 'breakfast' | 'sides' | 'drinks' | 'specials' | 'kids';
+export type MenuCategory = 'platos_fuertes' | 'tacos' | 'burritos' | 'quesadillas' | 'breakfast' | 'sides' | 'drinks' | 'specials' | 'kids';
+
+export interface MenuVariantOption {
+  id: string;
+  name: string;      // Spanish name, e.g., "Pastor"
+  name_en: string;   // English name, e.g., "Al Pastor"
+  price_modifier: number;  // Additional cost for this option
+}
+
+export interface MenuVariants {
+  label: string;     // e.g., "Choose your meat"
+  required: boolean;
+  options: MenuVariantOption[];
+}
 
 export interface MenuItem {
   id: string;
@@ -11,6 +24,14 @@ export interface MenuItem {
   is_popular: boolean;
   spicy_level: number;
   is_vegetarian: boolean;
+  variants?: MenuVariants;  // Optional variants for items like tacos/quesadillas
+}
+
+export interface SelectedVariant {
+  id: string;
+  name: string;      // Spanish name
+  name_en: string;   // English name
+  price_modifier: number;
 }
 
 export interface CartItem {
@@ -18,6 +39,7 @@ export interface CartItem {
   menuItem: MenuItem;
   quantity: number;
   specialInstructions?: string;
+  selectedVariant?: SelectedVariant;  // Selected variant for items with options
 }
 
 export interface OrderItem {
@@ -26,6 +48,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   special_instructions?: string;
+  selected_variant?: SelectedVariant;
 }
 
 export type OrderStatus = 'pending' | 'paid' | 'preparing' | 'ready' | 'completed' | 'cancelled';

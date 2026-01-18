@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
-import { CartItem, MenuItem } from '@/types';
+import { createContext, useContext, useReducer, ReactNode, useEffect, useMemo, useCallback, useRef } from 'react';
+import { CartItem, MenuItem, SelectedVariant } from '@/types';
 
 interface CartState {
   items: CartItem[];
@@ -14,7 +14,7 @@ function generateCartItemId(): string {
 }
 
 type CartAction =
-  | { type: 'ADD_ITEM'; payload: { menuItem: MenuItem; quantity?: number; specialInstructions?: string } }
+  | { type: 'ADD_ITEM'; payload: { menuItem: MenuItem; quantity?: number; specialInstructions?: string; selectedVariant?: SelectedVariant } }
   | { type: 'REMOVE_ITEM'; payload: string } // cartItemId
   | { type: 'UPDATE_QUANTITY'; payload: { cartItemId: string; quantity: number } }
   | { type: 'UPDATE_INSTRUCTIONS'; payload: { cartItemId: string; instructions: string } }
@@ -24,10 +24,10 @@ type CartAction =
   | { type: 'CLOSE_CART' }
   | { type: 'LOAD_CART'; payload: CartItem[] };
 
-const CartContext = createContext<{
+interface CartContextValue {
   state: CartState;
   dispatch: React.Dispatch<CartAction>;
-  addToCart: (menuItem: MenuItem, quantity?: number, specialInstructions?: string) => void;
+  addToCart: (menuItem: MenuItem, quantity?: number, specialInstructions?: string, selectedVariant?: SelectedVariant) => void;
   removeFromCart: (cartItemId: string) => void;
   updateQuantity: (cartItemId: string, quantity: number) => void;
   updateInstructions: (cartItemId: string, instructions: string) => void;
@@ -37,16 +37,21 @@ const CartContext = createContext<{
   closeCart: () => void;
   subtotal: number;
   itemCount: number;
-} | null>(null);
+}
+
+const CartContext = createContext<CartContextValue | null>(null);
 
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const { menuItem, quantity = 1, specialInstructions } = action.payload;
+      const { menuItem, quantity = 1, specialInstructions, selectedVariant } = action.payload;
 
-      // Check if same item with same special instructions already exists
+      // Check if same item with same special instructions AND same variant already exists
       const existingIndex = state.items.findIndex(
-        (item) => item.menuItem.id === menuItem.id && item.specialInstructions === specialInstructions
+        (item) =>
+          item.menuItem.id === menuItem.id &&
+          item.specialInstructions === specialInstructions &&
+          item.selectedVariant?.id === selectedVariant?.id
       );
 
       if (existingIndex > -1) {
@@ -69,6 +74,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
             menuItem,
             quantity,
             specialInstructions,
+            selectedVariant,
           },
         ],
       };
@@ -134,6 +140,9 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [], isOpen: false });
 
+  // Ref for debounced localStorage save
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
@@ -147,67 +156,103 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Save cart to localStorage on change
+  // Debounced save cart to localStorage on change
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(state.items));
+    // Clear any pending save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Debounce localStorage writes by 500ms
+    saveTimeoutRef.current = setTimeout(() => {
+      localStorage.setItem('cart', JSON.stringify(state.items));
+    }, 500);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [state.items]);
 
-  const addToCart = (menuItem: MenuItem, quantity = 1, specialInstructions?: string) => {
-    dispatch({ type: 'ADD_ITEM', payload: { menuItem, quantity, specialInstructions } });
-  };
+  // Memoized action handlers to prevent unnecessary re-renders
+  const addToCart = useCallback((menuItem: MenuItem, quantity = 1, specialInstructions?: string, selectedVariant?: SelectedVariant) => {
+    dispatch({ type: 'ADD_ITEM', payload: { menuItem, quantity, specialInstructions, selectedVariant } });
+  }, []);
 
-  const removeFromCart = (cartItemId: string) => {
+  const removeFromCart = useCallback((cartItemId: string) => {
     dispatch({ type: 'REMOVE_ITEM', payload: cartItemId });
-  };
+  }, []);
 
-  const updateQuantity = (cartItemId: string, quantity: number) => {
+  const updateQuantity = useCallback((cartItemId: string, quantity: number) => {
     dispatch({ type: 'UPDATE_QUANTITY', payload: { cartItemId, quantity } });
-  };
+  }, []);
 
-  const updateInstructions = (cartItemId: string, instructions: string) => {
+  const updateInstructions = useCallback((cartItemId: string, instructions: string) => {
     dispatch({ type: 'UPDATE_INSTRUCTIONS', payload: { cartItemId, instructions } });
-  };
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     dispatch({ type: 'CLEAR_CART' });
-  };
+  }, []);
 
-  const toggleCart = () => {
+  const toggleCart = useCallback(() => {
     dispatch({ type: 'TOGGLE_CART' });
-  };
+  }, []);
 
-  const openCart = () => {
+  const openCart = useCallback(() => {
     dispatch({ type: 'OPEN_CART' });
-  };
+  }, []);
 
-  const closeCart = () => {
+  const closeCart = useCallback(() => {
     dispatch({ type: 'CLOSE_CART' });
-  };
+  }, []);
 
-  const subtotal = state.items.reduce(
-    (sum, item) => sum + item.menuItem.price * item.quantity,
-    0
+  // Memoize computed values to prevent recalculation on every render
+  // Include variant price modifier in the calculation
+  const subtotal = useMemo(() =>
+    state.items.reduce((sum, item) => {
+      const unitPrice = item.menuItem.price + (item.selectedVariant?.price_modifier || 0);
+      return sum + unitPrice * item.quantity;
+    }, 0),
+    [state.items]
   );
 
-  const itemCount = state.items.reduce((sum, item) => sum + item.quantity, 0);
+  const itemCount = useMemo(() =>
+    state.items.reduce((sum, item) => sum + item.quantity, 0),
+    [state.items]
+  );
+
+  // Memoize the entire context value to prevent unnecessary re-renders
+  const contextValue = useMemo<CartContextValue>(() => ({
+    state,
+    dispatch,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    updateInstructions,
+    clearCart,
+    toggleCart,
+    openCart,
+    closeCart,
+    subtotal,
+    itemCount,
+  }), [
+    state,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    updateInstructions,
+    clearCart,
+    toggleCart,
+    openCart,
+    closeCart,
+    subtotal,
+    itemCount,
+  ]);
 
   return (
-    <CartContext.Provider
-      value={{
-        state,
-        dispatch,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        updateInstructions,
-        clearCart,
-        toggleCart,
-        openCart,
-        closeCart,
-        subtotal,
-        itemCount,
-      }}
-    >
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );

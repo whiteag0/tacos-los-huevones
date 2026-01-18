@@ -6,18 +6,54 @@ import MenuSection from '@/components/MenuSection';
 import { MenuItem, MenuCategory } from '@/types';
 import { getMenu } from '@/lib/api';
 
-const categories: MenuCategory[] = ['breakfast', 'tacos', 'quesadillas', 'burritos', 'sides', 'drinks'];
+const categories: MenuCategory[] = ['platos_fuertes', 'breakfast', 'specials', 'kids', 'drinks'];
 
 // Fallback menu items in case API is unavailable
 const fallbackMenuItems: MenuItem[] = [
-  { id: '1', name: 'Carne Asada Taco', description: 'Grilled marinated steak with fresh cilantro, onions, and our homemade salsa verde', price: 4.50, category: 'tacos', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: false },
-  { id: '2', name: 'Al Pastor Taco', description: 'Marinated pork with pineapple, cilantro, and onions on a fresh corn tortilla', price: 4.50, category: 'tacos', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: false },
-  { id: '3', name: 'Pollo Taco', description: 'Seasoned grilled chicken with lettuce, cheese, and chipotle crema', price: 4.00, category: 'tacos', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: false },
-  { id: '9', name: 'Carne Asada Burrito', description: 'Grilled steak with rice, beans, cheese, sour cream, and pico de gallo', price: 12.50, category: 'burritos', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: false },
-  { id: '15', name: 'Cheese Quesadilla', description: 'Melted Oaxacan cheese in a crispy flour tortilla with sour cream', price: 7.00, category: 'quesadillas', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: true },
-  { id: '22', name: 'Breakfast Burrito', description: 'Scrambled eggs, choice of meat, potatoes, cheese, and salsa', price: 9.50, category: 'breakfast', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: false },
-  { id: '26', name: 'Chips & Guacamole', description: 'Fresh tortilla chips with freshly made guacamole', price: 6.50, category: 'sides', is_available: true, is_popular: true, spicy_level: 0, is_vegetarian: true },
-  { id: '29', name: 'Horchata', description: 'Traditional Mexican rice drink with cinnamon and vanilla', price: 3.50, category: 'drinks', is_available: true, is_popular: true, spicy_level: 0, is_vegetarian: true },
+  {
+    id: '1',
+    name: 'Taco',
+    description: 'Authentic street taco on a fresh corn tortilla with cilantro, onions, and salsa',
+    price: 3.00,
+    category: 'platos_fuertes',
+    is_available: true,
+    is_popular: true,
+    spicy_level: 1,
+    is_vegetarian: false,
+    variants: {
+      label: 'Choose your meat',
+      required: true,
+      options: [
+        { id: 'pastor', name: 'Pastor', name_en: 'Al Pastor', price_modifier: 0 },
+        { id: 'asada', name: 'Asada', name_en: 'Grilled Steak', price_modifier: 0 },
+        { id: 'pollo', name: 'Pollo', name_en: 'Chicken', price_modifier: 0 },
+      ]
+    }
+  },
+  {
+    id: '2',
+    name: 'Quesadilla',
+    description: 'Large flour tortilla with melted Oaxacan cheese and your choice of meat',
+    price: 11.00,
+    category: 'platos_fuertes',
+    is_available: true,
+    is_popular: true,
+    spicy_level: 0,
+    is_vegetarian: false,
+    variants: {
+      label: 'Choose your meat',
+      required: true,
+      options: [
+        { id: 'pastor', name: 'Pastor', name_en: 'Al Pastor', price_modifier: 0 },
+        { id: 'asada', name: 'Asada', name_en: 'Grilled Steak', price_modifier: 0 },
+        { id: 'pollo', name: 'Pollo', name_en: 'Chicken', price_modifier: 0 },
+      ]
+    }
+  },
+  { id: '3', name: 'Breakfast Tacos', description: 'Two tacos with scrambled eggs, cheese, and choice of bacon or chorizo', price: 8.00, category: 'breakfast', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: false },
+  { id: '4', name: 'Torta Mamalona', description: 'The ultimate Mexican sandwich loaded with meats, avocado, and more', price: 15.00, category: 'specials', is_available: true, is_popular: true, spicy_level: 1, is_vegetarian: false },
+  { id: '5', name: 'Kids Quesadilla + Fries', description: 'Cheese quesadilla with a side of crispy fries', price: 8.00, category: 'kids', is_available: true, is_popular: false, spicy_level: 0, is_vegetarian: true },
+  { id: '6', name: 'Horchata', description: 'Traditional Mexican rice drink with cinnamon and vanilla', price: 3.50, category: 'drinks', is_available: true, is_popular: true, spicy_level: 0, is_vegetarian: true },
 ];
 
 export default function Home() {
@@ -109,7 +145,7 @@ export default function Home() {
                 using fresh, quality ingredients to create the flavors of Mexico.
               </p>
               <p className="text-gray-600 mb-4">
-                From our famous barbacoa tacos to our refreshing horchata, every item is
+                From our famous barbacoa tacos to our loaded papas locas, every item is
                 made with love and served with a smile.
               </p>
               <div className="flex flex-wrap gap-4 mt-6">
@@ -127,10 +163,27 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-red-100 via-orange-50 to-yellow-100 rounded-2xl p-8 text-center">
-              <span className="text-8xl block mb-4">🌮</span>
-              <p className="text-xl font-bold text-gray-800">Authentic Mexican Flavors</p>
-              <p className="text-gray-600">Since the beginning</p>
+            <div className="relative rounded-2xl overflow-hidden aspect-[4/3] group">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover animate-slow-zoom"
+              >
+                <source src="/videos/about-bg.mp4" type="video/mp4" />
+              </video>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+
+              {/* Animated Text Overlays */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
+                <p className="text-3xl md:text-4xl font-bold animate-slide-left animate-text-glow drop-shadow-lg">
+                  Authentic Mexican Flavors
+                </p>
+                <p className="text-lg md:text-xl mt-3 animate-slide-up delay-300 text-white/90 font-medium tracking-wide">
+                  Made Fresh Daily
+                </p>
+              </div>
             </div>
           </div>
         </div>

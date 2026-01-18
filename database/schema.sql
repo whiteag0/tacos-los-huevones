@@ -10,12 +10,13 @@ CREATE TABLE menu_items (
     name TEXT NOT NULL,
     description TEXT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
-    category TEXT NOT NULL CHECK (category IN ('tacos', 'burritos', 'quesadillas', 'breakfast', 'sides', 'drinks')),
+    category TEXT NOT NULL CHECK (category IN ('tacos', 'burritos', 'quesadillas', 'breakfast', 'sides', 'drinks', 'specials', 'kids')),
     image_url TEXT,
     is_available BOOLEAN DEFAULT true,
     is_popular BOOLEAN DEFAULT false,
     spicy_level INTEGER DEFAULT 0 CHECK (spicy_level >= 0 AND spicy_level <= 3),
     is_vegetarian BOOLEAN DEFAULT false,
+    variants JSONB,  -- Optional variants for items with selectable options (e.g., meat type)
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

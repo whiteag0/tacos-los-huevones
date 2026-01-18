@@ -88,7 +88,14 @@ export default function CartSlider() {
 
                   <div className="flex-grow min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-semibold text-gray-900 truncate">{item.menuItem.name}</h3>
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-gray-900 truncate">{item.menuItem.name}</h3>
+                        {item.selectedVariant && (
+                          <p className="text-sm text-gray-600">
+                            {item.selectedVariant.name} <span className="text-gray-400">({item.selectedVariant.name_en})</span>
+                          </p>
+                        )}
+                      </div>
                       <button
                         onClick={() => removeFromCart(item.cartItemId)}
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
@@ -99,7 +106,9 @@ export default function CartSlider() {
                       </button>
                     </div>
 
-                    <p className="text-red-600 font-bold mt-0.5">${(item.menuItem.price * item.quantity).toFixed(2)}</p>
+                    <p className="text-red-600 font-bold mt-0.5">
+                      ${((item.menuItem.price + (item.selectedVariant?.price_modifier || 0)) * item.quantity).toFixed(2)}
+                    </p>
 
                     {item.specialInstructions && (
                       <p className="text-gray-500 text-sm italic mt-1 truncate">{item.specialInstructions}</p>
