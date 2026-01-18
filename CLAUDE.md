@@ -82,26 +82,48 @@ tacos-los-huevones/
 - Connection string available via Neon MCP or dashboard
 - Schema, seed data, and indexes already applied
 
-## Environment Variables (Backend)
+## Environment Variables (Backend - Render)
 
-```
-DATABASE_URL=postgresql://neondb_owner:<password>@<host>/neondb?sslmode=require
-SQUARE_ACCESS_TOKEN=
-SQUARE_LOCATION_ID=
-SQUARE_APPLICATION_ID=
-SQUARE_ENVIRONMENT=production
+```bash
+# Database (Neon)
+DATABASE_URL=postgresql://neondb_owner:npg_72swnXzjNKuP@ep-curly-recipe-ah27o4px-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require
+
+# Square Payments (get from developer.squareup.com)
+SQUARE_ACCESS_TOKEN=           # Your Square access token
+SQUARE_LOCATION_ID=            # Your Square location ID
+SQUARE_APPLICATION_ID=         # Your Square application ID
+SQUARE_ENVIRONMENT=sandbox     # "sandbox" for testing, "production" for live
 SQUARE_WEBHOOK_SIGNATURE_KEY=  # Optional: for webhook verification
-RESEND_API_KEY=
-BUSINESS_EMAIL=
-FRONTEND_URL=
-ADMIN_API_KEY=
+
+# Email Option 1: SMTP (Gmail recommended - free)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password  # Use Gmail App Password, not regular password
+SMTP_FROM_EMAIL=Tacos Los Huevones <your-email@gmail.com>
+
+# Email Option 2: Resend (alternative, 100 emails/day free)
+RESEND_API_KEY=                # Only if using Resend instead of SMTP
+
+# Business Settings
+BUSINESS_EMAIL=owner-email@example.com  # Where to receive order notifications
+FRONTEND_URL=https://tacos-los-huevones.vercel.app
+
+# Admin Dashboard
+ADMIN_API_KEY=your-secure-admin-key  # Secure key for admin access
 ```
+
+### Gmail App Password Setup (for SMTP)
+1. Go to Google Account → Security → 2-Step Verification (enable if not already)
+2. Go to Google Account → Security → App passwords
+3. Create new app password for "Mail"
+4. Use that 16-character password as SMTP_PASSWORD
 
 ## Environment Variables (Frontend - Vercel)
 
-```
+```bash
 NEXT_PUBLIC_API_URL=https://tacos-los-huevones.onrender.com
-SITE_PASSWORD=  # Leave empty to disable password protection
+SITE_PASSWORD=Tacos2026  # Password protection for site access
 ```
 
 ## Common Issues & Fixes

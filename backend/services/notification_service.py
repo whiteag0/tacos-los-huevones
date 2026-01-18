@@ -1,33 +1,84 @@
-import resend
 import asyncio
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from config import get_settings
 from models import Order
 from typing import Optional
 
 settings = get_settings()
 
-# Initialize Resend for email
-if settings.resend_api_key:
-    resend.api_key = settings.resend_api_key
+# Try to import resend, but it's optional
+try:
+    import resend
+    if settings.resend_api_key:
+        resend.api_key = settings.resend_api_key
+    RESEND_AVAILABLE = True
+except ImportError:
+    RESEND_AVAILABLE = False
 
 
-async def send_email(to: str, subject: str, html: str) -> bool:
+async def send_email_smtp(to: str, subject: str, html: str) -> bool:
+    """Send an email using SMTP (Gmail or other provider)"""
+    if not settings.smtp_host or not settings.smtp_user or not settings.smtp_password:
+        print("SMTP not configured, skipping email")
+        return False
+
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = settings.smtp_from_email or settings.smtp_user
+        msg['To'] = to
+
+        # Attach HTML content
+        html_part = MIMEText(html, 'html')
+        msg.attach(html_part)
+
+        # Connect and send
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+            server.starttls()
+            server.login(settings.smtp_user, settings.smtp_password)
+            server.sendmail(msg['From'], to, msg.as_string())
+
+        print(f"Email sent via SMTP to {to}")
+        return True
+    except Exception as e:
+        print(f"SMTP Email error: {e}")
+        return False
+
+
+async def send_email_resend(to: str, subject: str, html: str) -> bool:
     """Send an email using Resend (free tier: 100 emails/day)"""
-    if not settings.resend_api_key:
+    if not RESEND_AVAILABLE or not settings.resend_api_key:
         print("Resend not configured, skipping email")
         return False
 
     try:
         resend.Emails.send({
-            "from": "Tacos Los Huevones <orders@tacosloshuevones.com>",
+            "from": settings.smtp_from_email or "Tacos Los Huevones <orders@tacosloshuevones.com>",
             "to": to,
             "subject": subject,
             "html": html
         })
+        print(f"Email sent via Resend to {to}")
         return True
     except Exception as e:
-        print(f"Email error: {e}")
+        print(f"Resend Email error: {e}")
         return False
+
+
+async def send_email(to: str, subject: str, html: str) -> bool:
+    """Send an email using configured provider (SMTP preferred, then Resend)"""
+    # Try SMTP first if configured
+    if settings.smtp_host and settings.smtp_user and settings.smtp_password:
+        return await send_email_smtp(to, subject, html)
+
+    # Fall back to Resend
+    if RESEND_AVAILABLE and settings.resend_api_key:
+        return await send_email_resend(to, subject, html)
+
+    print("No email provider configured, skipping email")
+    return False
 
 
 async def notify_new_order(order: Order):
@@ -36,7 +87,9 @@ async def notify_new_order(order: Order):
         return
 
     items_html = "".join([
-        f"<li>{item.quantity}x {item.name} - ${item.price * item.quantity:.2f}</li>"
+        f"<li>{item.quantity}x {item.name} - ${item.price * item.quantity:.2f}"
+        f"{f' ({item.selected_variant})' if item.selected_variant else ''}"
+        f"{f' <em>({item.special_instructions})</em>' if item.special_instructions else ''}</li>"
         for item in order.items
     ])
 
@@ -62,7 +115,8 @@ async def notify_new_order(order: Order):
 async def send_order_confirmation(order: Order):
     """Send order confirmation to customer via email"""
     items_html = "".join([
-        f"<li>{item.quantity}x {item.name} - ${item.price * item.quantity:.2f}</li>"
+        f"<li>{item.quantity}x {item.name} - ${item.price * item.quantity:.2f}"
+        f"{f' ({item.selected_variant})' if item.selected_variant else ''}</li>"
         for item in order.items
     ])
 

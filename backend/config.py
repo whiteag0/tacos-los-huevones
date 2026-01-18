@@ -16,8 +16,15 @@ class Settings(BaseSettings):
     # Your platform fee (in cents)
     platform_fee_cents: int = 150  # $1.50
 
-    # Resend (for email) - Free tier: 100 emails/day
+    # Email - Option 1: Resend (free tier: 100 emails/day)
     resend_api_key: str = ""
+
+    # Email - Option 2: SMTP (Gmail or other provider)
+    smtp_host: str = ""  # e.g., "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""  # e.g., your Gmail address
+    smtp_password: str = ""  # App password (not regular password)
+    smtp_from_email: str = ""  # Optional: "Tacos Los Huevones <orders@example.com>"
 
     # Business notification email
     business_email: str = ""
