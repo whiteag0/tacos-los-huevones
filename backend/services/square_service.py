@@ -1,4 +1,4 @@
-from square import Square
+from square.client import Client
 from config import get_settings
 from typing import Optional, Dict, Any
 import uuid
@@ -6,8 +6,9 @@ import uuid
 settings = get_settings()
 
 # Initialize Square client
-square_client = Square(
-    token=settings.square_access_token,
+square_client = Client(
+    access_token=settings.square_access_token,
+    environment=settings.square_environment,
 )
 
 
@@ -33,43 +34,51 @@ async def create_payment_link(
     app_fee_cents = settings.platform_fee_cents
 
     try:
-        result = square_client.checkout.payment_links.create(
-            idempotency_key=str(uuid.uuid4()),
-            order={
-                "location_id": settings.square_location_id,
-                "line_items": [
-                    {
-                        "name": description,
-                        "quantity": "1",
-                        "base_price_money": {
-                            "amount": amount_cents,
-                            "currency": "USD"
+        result = square_client.checkout.create_payment_link(
+            body={
+                "idempotency_key": str(uuid.uuid4()),
+                "order": {
+                    "location_id": settings.square_location_id,
+                    "line_items": [
+                        {
+                            "name": description,
+                            "quantity": "1",
+                            "base_price_money": {
+                                "amount": amount_cents,
+                                "currency": "USD"
+                            }
                         }
+                    ],
+                    "reference_id": order_id,
+                },
+                "checkout_options": {
+                    "redirect_url": f"{settings.frontend_url}/order/{order_id}/confirmation",
+                    "ask_for_shipping_address": False,
+                    "accepted_payment_methods": {
+                        "apple_pay": True,
+                        "google_pay": True,
+                        "cash_app_pay": True,
                     }
-                ],
-                "reference_id": order_id,
-            },
-            checkout_options={
-                "redirect_url": f"{settings.frontend_url}/order/{order_id}/confirmation",
-                "ask_for_shipping_address": False,
-                "accepted_payment_methods": {
-                    "apple_pay": True,
-                    "google_pay": True,
-                    "cash_app_pay": True,
-                }
-            },
-            pre_populated_data={
-                "buyer_email": customer_email
-            },
-            payment_note=f"Order #{order_id[:8]}",
+                },
+                "pre_populated_data": {
+                    "buyer_email": customer_email
+                },
+                "payment_note": f"Order #{order_id[:8]}",
+            }
         )
 
-        payment_link = result.payment_link
+        if result.is_success():
+            payment_link = result.body.get("payment_link", {})
+        else:
+            return {
+                "success": False,
+                "errors": [str(e) for e in result.errors]
+            }
         return {
             "success": True,
-            "payment_link_url": payment_link.url if payment_link else None,
-            "payment_link_id": payment_link.id if payment_link else None,
-            "order_id": payment_link.order_id if payment_link else None,
+            "payment_link_url": payment_link.get("url") if payment_link else None,
+            "payment_link_id": payment_link.get("id") if payment_link else None,
+            "order_id": payment_link.get("order_id") if payment_link else None,
         }
     except Exception as e:
         return {
@@ -81,13 +90,19 @@ async def create_payment_link(
 async def get_payment_status(payment_link_id: str) -> Dict[str, Any]:
     """Check the status of a payment link"""
     try:
-        result = square_client.checkout.payment_links.get(id=payment_link_id)
-        payment_link = result.payment_link
-        return {
-            "success": True,
-            "status": "completed" if payment_link and payment_link.order_id else "pending",
-            "payment_link": payment_link
-        }
+        result = square_client.checkout.retrieve_payment_link(id=payment_link_id)
+        if result.is_success():
+            payment_link = result.body.get("payment_link", {})
+            return {
+                "success": True,
+                "status": "completed" if payment_link and payment_link.get("order_id") else "pending",
+                "payment_link": payment_link
+            }
+        else:
+            return {
+                "success": False,
+                "errors": [str(e) for e in result.errors]
+            }
     except Exception as e:
         return {
             "success": False,
@@ -98,11 +113,17 @@ async def get_payment_status(payment_link_id: str) -> Dict[str, Any]:
 async def retrieve_order(square_order_id: str) -> Dict[str, Any]:
     """Retrieve order details from Square"""
     try:
-        result = square_client.orders.get(order_id=square_order_id)
-        return {
-            "success": True,
-            "order": result.order
-        }
+        result = square_client.orders.retrieve_order(order_id=square_order_id)
+        if result.is_success():
+            return {
+                "success": True,
+                "order": result.body.get("order")
+            }
+        else:
+            return {
+                "success": False,
+                "errors": [str(e) for e in result.errors]
+            }
     except Exception as e:
         return {
             "success": False,
