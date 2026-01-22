@@ -1,15 +1,19 @@
-from square.client import Client
 from config import get_settings
 from typing import Optional, Dict, Any
 import uuid
 
 settings = get_settings()
 
-# Initialize Square client
-square_client = Client(
-    access_token=settings.square_access_token,
-    environment=settings.square_environment,
-)
+# Initialize Square client (graceful degradation if SDK unavailable)
+square_client = None
+try:
+    from square.client import Client
+    square_client = Client(
+        access_token=settings.square_access_token,
+        environment=settings.square_environment,
+    )
+except ImportError as e:
+    print(f"Warning: Square SDK not available ({e}). Payment features disabled.")
 
 
 async def create_payment_link(
@@ -30,6 +34,13 @@ async def create_payment_link(
     Returns:
         Dict with payment_link_url and payment_link_id
     """
+    # Check if Square SDK is available
+    if square_client is None:
+        return {
+            "success": False,
+            "errors": ["Square SDK not available. Please contact support."]
+        }
+
     # Calculate application fee ($1.50 = 150 cents)
     app_fee_cents = settings.platform_fee_cents
 
@@ -89,6 +100,11 @@ async def create_payment_link(
 
 async def get_payment_status(payment_link_id: str) -> Dict[str, Any]:
     """Check the status of a payment link"""
+    if square_client is None:
+        return {
+            "success": False,
+            "errors": ["Square SDK not available"]
+        }
     try:
         result = square_client.checkout.retrieve_payment_link(id=payment_link_id)
         if result.is_success():
@@ -112,6 +128,11 @@ async def get_payment_status(payment_link_id: str) -> Dict[str, Any]:
 
 async def retrieve_order(square_order_id: str) -> Dict[str, Any]:
     """Retrieve order details from Square"""
+    if square_client is None:
+        return {
+            "success": False,
+            "errors": ["Square SDK not available"]
+        }
     try:
         result = square_client.orders.retrieve_order(order_id=square_order_id)
         if result.is_success():
