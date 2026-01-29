@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { MenuItem, SelectedVariant, MenuVariantOption } from '@/types';
 import { useCart } from '@/context/CartContext';
 import Image from 'next/image';
@@ -16,6 +17,12 @@ export default function MenuCard({ item }: MenuCardProps) {
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<SelectedVariant | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Track if component is mounted for portal rendering
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Check if item has required variants
   const hasVariants = item.variants && item.variants.options.length > 0;
@@ -181,9 +188,9 @@ export default function MenuCard({ item }: MenuCardProps) {
         </div>
       </div>
 
-      {/* Customization Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {/* Customization Modal - rendered via portal to avoid stacking context issues */}
+      {showModal && mounted && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             {/* Modal Header */}
             <div className="relative h-48 bg-gradient-to-br from-orange-50 to-red-50 overflow-hidden">
@@ -322,7 +329,8 @@ export default function MenuCard({ item }: MenuCardProps) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
