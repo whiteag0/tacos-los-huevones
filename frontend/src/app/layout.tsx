@@ -20,10 +20,18 @@ export const metadata: Metadata = {
   title: "Tacos Los Huevones | Authentic Mexican Street Food",
   description: "Fresh, authentic Mexican tacos, burritos, and more in Parker, Colorado. Order online for pickup!",
   keywords: ["tacos", "mexican food", "food truck", "parker colorado", "burritos", "authentic mexican"],
+  metadataBase: new URL('https://tacosloshuevones.com'),
   openGraph: {
     title: "Tacos Los Huevones",
-    description: "Authentic Mexican Street Food in Parker, Colorado",
+    description: "Authentic Mexican Street Food in Parker, Colorado. Order online for pickup!",
     type: "website",
+    siteName: "Tacos Los Huevones",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tacos Los Huevones",
+    description: "Authentic Mexican Street Food in Parker, Colorado. Order online for pickup!",
   },
 };
 
