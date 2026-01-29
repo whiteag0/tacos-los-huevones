@@ -69,7 +69,7 @@ export function middleware(request: NextRequest) {
           .bg-overlay {
             position: fixed;
             inset: 0;
-            background: linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.5) 100%);
+            background: linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%);
             z-index: -1;
           }
 
