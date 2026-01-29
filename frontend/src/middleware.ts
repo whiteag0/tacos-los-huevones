@@ -35,6 +35,7 @@ export function middleware(request: NextRequest) {
     `<!DOCTYPE html>
     <html lang="en">
       <head>
+        <meta charset="UTF-8">
         <title>Tacos Los Huevones | Enter</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="description" content="Authentic Mexican Street Food in Parker, Colorado">
@@ -361,7 +362,7 @@ export function middleware(request: NextRequest) {
     {
       status: 200,
       headers: {
-        'Content-Type': 'text/html',
+        'Content-Type': 'text/html; charset=utf-8',
       },
     }
   );
